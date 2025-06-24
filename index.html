@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Quota Reset Timer</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+    input, button { padding: 10px; font-size: 1rem; }
+    .timer { font-size: 2rem; margin-top: 20px; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Image Quota Reset Timer</h1>
+  <p>Enter your last cooldown message time and duration to track when image generation resets.</p><label for="startTime">Cooldown started at (HH:MM): </label> <input type="time" id="startTime" required><br><br>
+
+<label for="duration">Cooldown duration (e.g., 19:33): </label> <input type="text" id="duration" placeholder="hh:mm" required><br><br>
+
+<button onclick="calculateResetTime()">Start Timer</button>
+
+  <div class="timer" id="result"></div>  <script>
+    function setCookie(name, value, expires) {
+      const date = new Date(expires);
+      document.cookie = `${name}=${value}; expires=${date.toUTCString()}; path=/`;
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [key, val] = cookie.trim().split('=');
+        if (key === name) return val;
+      }
+      return null;
+    }
+
+    function calculateResetTime() {
+      const startTime = document.getElementById("startTime").value;
+      const duration = document.getElementById("duration").value;
+
+      if (!startTime || !duration.match(/^\d{1,2}:\d{2}$/)) {
+        alert("Please enter a valid time and duration in hh:mm format.");
+        return;
+      }
+
+      const now = new Date();
+      const [startHour, startMinute] = startTime.split(":").map(Number);
+      const [durHour, durMinute] = duration.split(":" ).map(Number);
+
+      const startDate = new Date(now);
+      startDate.setHours(startHour);
+      startDate.setMinutes(startMinute);
+      startDate.setSeconds(0);
+
+      const resetTime = new Date(startDate.getTime() + durHour * 60 * 60 * 1000 + durMinute * 60 * 1000);
+
+      setCookie("resetTime", resetTime.toISOString(), resetTime);
+
+      startCountdown(resetTime);
+    }
+
+    function startCountdown(resetTime) {
+      const interval = setInterval(() => {
+        const now = new Date();
+        const remaining = new Date(resetTime) - now;
+
+        if (remaining <= 0) {
+          document.getElementById("result").textContent = "✅ Image generation is available again!";
+          document.cookie = "resetTime=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          clearInterval(interval);
+        } else {
+          const hrs = Math.floor(remaining / (1000 * 60 * 60));
+          const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+
+          document.getElementById("result").textContent = `⏳ ${hrs}h ${mins}m ${secs}s remaining`;
+        }
+      }, 1000);
+    }
+
+    window.onload = function () {
+      const storedReset = getCookie("resetTime");
+      if (storedReset) {
+        const resetDate = new Date(storedReset);
+        const now = new Date();
+        if (resetDate > now) {
+          startCountdown(resetDate);
+        } else {
+          document.cookie = "resetTime=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        }
+      }
+    };
+  </script></body>
+</html>
